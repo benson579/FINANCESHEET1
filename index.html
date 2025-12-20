@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- ★★★ 1. 設定標題 ★★★ -->
+    <title>全方位財務策劃初診 | 您的專屬規劃</title>
+    
+    <!-- ★★★ 2. 網頁小圖示 ★★★ -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+
+    <!-- ★★★ 3. 社交媒體預覽設定 ★★★ -->
+    <meta property="og:title" content="全方位財務策劃初診 | 您的私人財務建築師" />
+    <meta property="og:description" content="這不是推銷，而是協助您釐清資產架構、退休藍圖與圓夢計畫的客觀盤點。約 2 分鐘，打造您的理想生活。" />
+    <meta property="og:image" content="https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&q=80&w=1000" />
+    <meta property="og:type" content="website" />
+
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 引入 Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- 引入 Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: "Microsoft JhengHei", "PingFang TC", sans-serif; background-color: #f1f5f9; }
+        
+        .fade-in-up { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeInUp { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        .pop-in { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .hover-card { transition: all 0.2s ease-out; }
+        .hover-card:hover { transform: translateY(-2px); border-color: #d97706; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.1); }
+        .hover-card:active { transform: scale(0.98); }
+        
+        .custom-checkbox { accent-color: #0f172a; width: 1.2rem; height: 1.2rem; }
+        
+        /* 統一輸入框樣式 */
+        .input-base {
+            width: 100%;
+            padding: 0.875rem 1rem; /* p-3.5 */
+            border-radius: 0.75rem; /* rounded-xl */
+            border: 1px solid #cbd5e1;
+            background-color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .input-base:focus {
+            border-color: #d97706; /* amber-600 */
+            box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.1);
+        }
+        
+        /* 統一標題樣式 */
+        .section-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; line-height: 1.4; }
+        .section-desc { font-size: 0.875rem; color: #64748b; margin-top: 0.25rem; }
+        .field-label { display: block; font-size: 0.875rem; font-weight: 700; color: #334155; margin-bottom: 0.5rem; }
+        .required-mark { color: #ef4444; margin-left: 0.25rem; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        
+        // ★★★ 請保留你的 Formspree 網址 ★★★
+        const FORMSPREE_ENDPOINT = "https://formspree.io/f/mkgdqzar"; 
+
+        // ★★★ 請保留你的 LINE 連結 ★★★
+        const MY_LINE_LINK = "https://line.me/ti/p/EnUj8ZaFce"; 
+
+        const App = () => {
+            const [step, setStep] = useState(0);
+            const [formData, setFormData] = useState({
+                gender: '', 
+                ageRange: '',
+                familyStatus: '', 
+                education: '',
+                occupation: '', 
+                occupationOther: '',
+                name: '',
+                stage: '',
+                financialGoals: [],
+                investmentExperience: [],
+                monthlySavings: '',
+                concerns: [],
+                contactInfo: '',
+                contactTime: '',
+                note: '',
+                isAgreed: false
+            });
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [isSubmitted, setIsSubmitted] = useState(false);
+            const [errorMsg, setErrorMsg] = useState('');
+
+            const TOTAL_STEPS = 7;
+
+            const handleNext = () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setStep((prev) => prev + 1);
+            };
+            const handleBack = () => setStep((prev) => prev - 1);
+
+            const handleChange = (field, value) => {
+                setFormData((prev) => ({ ...prev, [field]: value }));
+            };
+
+            const handleMultiSelect = (field, value) => {
+                const current = formData[field] || [];
+                if (current.includes(value)) {
+                    handleChange(field, current.filter(item => item !== value));
+                } else {
+                    handleChange(field, [...current, value]);
+                }
+            };
+
+            const validateCurrentStep = () => {
+                switch (step) {
+                    case 0: return true;
+                    case 1: 
+                        const basicValid = formData.gender !== '' && formData.ageRange !== '' && formData.familyStatus !== '' && formData.education !== '' && formData.occupation !== '';
+                        if (formData.occupation === '其他 (請註明)') {
+                            return basicValid && formData.occupationOther.trim() !== '';
+                        }
+                        return basicValid;
+                    case 2: return formData.stage !== '';
+                    case 3: return formData.financialGoals.length > 0;
+                    case 4: return formData.investmentExperience.length > 0 && formData.monthlySavings !== '';
+                    case 5: return formData.concerns.length > 0;
+                    case 6: return formData.name !== '' && formData.contactInfo !== '' && formData.contactTime !== '' && formData.isAgreed === true;
+                    default: return false;
+                }
+            };
+
+            const handleSubmit = async () => {
+                setIsSubmitting(true);
+                setErrorMsg('');
+                
+                const finalData = {
+                    ...formData,
+                    occupation: formData.occupation === '其他 (請註明)' ? `其他: ${formData.occupationOther}` : formData.occupation
+                };
+
+                try {
+                  const response = await fetch(FORMSPREE_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(finalData)
+                  });
+                  if (response.ok) {
+                    setIsSubmitted(true);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  } else {
+                    setErrorMsg('傳送失敗，請檢查網址設定');
+                  }
+                } catch (error) {
+                  setErrorMsg('網路連線異常');
+                } finally {
+                  setIsSubmitting(false);
+                }
+            };
+
+            const Icon = ({ name, className }) => {
+                const elementRef = useRef(null);
+                useEffect(() => {
+                    if (elementRef.current && window.lucide) {
+                        const i = document.createElement('i');
+                        i.setAttribute('data-lucide', name);
+                        if (className) { i.className = className; }
+                        elementRef.current.innerHTML = '';
+                        elementRef.current.appendChild(i);
+                        window.lucide.createIcons({ root: elementRef.current, attrs: { class: className } });
+                    }
+                }, [name, className]);
+                return <span ref={elementRef} style={{ display: 'contents' }}></span>;
+            };
+
+            // 統一的頁面標題組件 (Header Component)
+            const StepHeader = ({ icon, title, desc }) => (
+                <div className="flex items-start gap-4 mb-6 border-b border-slate-100 pb-4">
+                    <div className="p-3 bg-amber-50 rounded-xl text-amber-600 shrink-0 mt-1">
+                        <Icon name={icon} className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h2 className="section-title">{title}</h2>
+                        <p className="section-desc">{desc}</p>
+                    </div>
+                </div>
+            );
+
+            const renderContent = () => {
+                switch (step) {
+                    case 0: // 歡迎頁 (保持置中設計)
+                        return (
+                            <div key="step0" className="space-y-8 text-slate-700 fade-in-up py-4">
+                                <div className="text-center space-y-4">
+                                    <div className="inline-flex items-center justify-center p-5 bg-slate-900 rounded-2xl shadow-xl mb-2 hover:scale-105 transition-transform duration-300">
+                                        <Icon name="landmark" className="text-amber-400 w-10 h-10" />
+                                    </div>
+                                    <h2 className="text-3xl font-bold text-slate-900 tracking-tight">建構您的理想生活</h2>
+                                    <p className="text-slate-600 leading-relaxed text-sm max-w-xs mx-auto">
+                                        無論是累積第一桶金，還是資產傳承，好的規劃能讓您專注於當下，對未來無後顧之憂。
+                                    </p>
+                                </div>
+                                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                                    <h3 className="font-bold text-slate-800 text-sm border-b border-slate-100 pb-3 mb-2 flex items-center gap-2">
+                                        <Icon name="sparkles" className="text-amber-500 w-4 h-4" /> 本次諮詢將協助您：
+                                    </h3>
+                                    <div className="space-y-4">
+                                        {[
+                                            { t: '目標具象化', d: '將退休、購屋或圓夢計畫，轉化為可執行的數字。', i: 'map' },
+                                            { t: '資產效率優化', d: '檢視現有工具效率，補足缺口並降低無謂風險。', i: 'pie-chart' },
+                                            { t: '建立防護網', d: '確保辛苦累積的財富，能按照您的意願留存。', i: 'shield-check' }
+                                        ].map((item, idx) => (
+                                            <div key={idx} className="flex items-start gap-3">
+                                                <div className="p-1.5 bg-slate-100 rounded-lg text-slate-600 mt-0.5"><Icon name={item.i} className="w-4 h-4" /></div>
+                                                <div><span className="font-bold text-sm text-slate-800 block">{item.t}</span><p className="text-xs text-slate-500 leading-snug">{item.d}</p></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <button onClick={handleNext} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95 duration-200 text-lg">
+                                    開啟規劃旅程 <Icon name="arrow-right" className="w-5 h-5" />
+                                </button>
+                            </div>
+                        );
+
+                    case 1: // 基本資料
+                        return (
+                            <div key="step1" className="fade-in-up space-y-6">
+                                <StepHeader icon="user-circle" title="基本資料建立" desc="讓我們快速了解您的背景，以便提供精準建議。" />
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                    {[
+                                        { val: 'male', label: '男', icon: 'user' },
+                                        { val: 'female', label: '女', icon: 'user' }
+                                    ].map(opt => (
+                                        <div key={opt.val} onClick={() => handleChange('gender', opt.val)}
+                                            className={`p-4 rounded-xl border-2 cursor-pointer text-center hover-card ${formData.gender === opt.val ? 'bg-slate-800 text-white border-slate-800' : 'bg-white border-slate-100 text-slate-600'}`}>
+                                            <span className="font-bold">{opt.label}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="field-label">年齡區間<span className="required-mark">*</span></label>
+                                        <select className="input-base cursor-pointer"
+                                            value={formData.ageRange} onChange={(e) => handleChange('ageRange', e.target.value)}>
+                                            <option value="">請選擇</option>
+                                            <option value="20-30">20-30 歲</option>
+                                            <option value="31-40">31-40 歲</option>
+                                            <option value="41-50">41-50 歲</option>
+                                            <option value="51-60">51-60 歲</option>
+                                            <option value="61+">61 歲以上</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="field-label">家庭狀況<span className="required-mark">*</span></label>
+                                        <select className="input-base cursor-pointer"
+                                            value={formData.familyStatus} onChange={(e) => handleChange('familyStatus', e.target.value)}>
+                                            <option value="">請選擇</option>
+                                            <option value="單身/未婚">單身/未婚 (自在一人)</option>
+                                            <option value="頂客/兩人世界">頂客/兩人世界 (無子女)</option>
+                                            <option value="已婚/伴侶 (育有子女)">已婚/伴侶 (育有子女)</option>
+                                            <option value="獨立撫養 (有子女)">獨立撫養 (有子女)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="field-label">最高學歷<span className="required-mark">*</span></label>
+                                    <div className="flex gap-2">
+                                        {['高中職以下', '大專院校', '碩士', '博士及以上'].map(edu => (
+                                            <button key={edu} onClick={() => handleChange('education', edu)}
+                                                className={`flex-1 py-2.5 px-2 rounded-xl border text-xs font-medium transition-all ${formData.education === edu ? 'bg-amber-50 border-amber-500 text-amber-700' : 'bg-white border-slate-200 text-slate-500 hover:border-amber-300'}`}>
+                                                {edu}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="field-label">職業身分<span className="required-mark">*</span></label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {[
+                                            '企業主/自營商', '一般上班族',
+                                            '專業人士(醫/法/會)', '自由接案/SOHO',
+                                            '軍公教', '其他 (請註明)'
+                                        ].map(job => (
+                                            <div key={job} onClick={() => handleChange('occupation', job)}
+                                                className={`p-3 rounded-xl border cursor-pointer text-sm text-center transition-all ${formData.occupation === job ? 'bg-amber-50 border-amber-500 text-amber-900 font-bold' : 'bg-white border-slate-200 text-slate-600 hover:border-amber-300'}`}>
+                                                {job}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {formData.occupation === '其他 (請註明)' && (
+                                        <div className="mt-3 pop-in">
+                                            <input type="text" className="input-base" placeholder="請輸入您的職業..."
+                                                value={formData.occupationOther} onChange={(e) => handleChange('occupationOther', e.target.value)} />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    
+                    case 2: // 人生階段
+                        return (
+                            <div key="step2" className="fade-in-up space-y-6">
+                                <StepHeader icon="target" title="人生階段定位" desc="不同的階段有不同的財務重心，您目前處於？" />
+                                <div className="space-y-3">
+                                    {[
+                                        { label: '資產累積期', desc: '專注本業收入，存第一桶金或投資增值', val: 'accumulation' },
+                                        { label: '家庭責任期', desc: '重視現金流穩定，有房貸或子女教育規劃', val: 'family' },
+                                        { label: '財富成熟期', desc: '資產已有基礎，思考退休後的被動收入', val: 'pre_retirement' },
+                                        { label: '樂齡傳承期', desc: '重視資產保全、稅務規劃與順利移轉', val: 'legacy' }
+                                    ].map((opt) => (
+                                        <div key={opt.val} onClick={() => handleChange('stage', opt.val)}
+                                            className={`p-5 rounded-2xl border-2 cursor-pointer hover-card flex justify-between items-center ${formData.stage === opt.val ? 'bg-amber-50 border-amber-500' : 'bg-white border-slate-100 hover:border-amber-200'}`}>
+                                            <div>
+                                                <h4 className={`font-bold text-lg ${formData.stage === opt.val ? 'text-amber-900' : 'text-slate-700'}`}>{opt.label}</h4>
+                                                <p className="text-sm text-slate-500 mt-1">{opt.desc}</p>
+                                            </div>
+                                            {formData.stage === opt.val && <div className="pop-in"><Icon name="check-circle" className="text-amber-600 w-6 h-6" /></div>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+
+                    case 3: // 財務目標
+                        return (
+                            <div key="step3" className="fade-in-up space-y-6">
+                                <StepHeader icon="landmark" title="核心目標設定" desc="需先制定目標，才能為您量身打造策略。" />
+                                <label className="field-label mb-4">請選擇 1-3 個您目前最重視的項目<span className="text-amber-500">*</span></label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {[
+                                        { id: 'cashflow', label: '增加被動收入', icon: 'dollar-sign' },
+                                        { id: 'dream', label: '圓夢/旅遊基金', icon: 'plane' },
+                                        { id: 'house', label: '購屋/置產計畫', icon: 'home' },
+                                        { id: 'fire', label: '提早退休 (FIRE)', icon: 'zap' },
+                                        { id: 'risk', label: '資產保全/醫療', icon: 'shield' },
+                                        { id: 'tax', label: '稅務/傳承', icon: 'file-text' },
+                                    ].map((item) => (
+                                        <div key={item.id} onClick={() => handleMultiSelect('financialGoals', item.id)}
+                                            className={`p-4 rounded-2xl border-2 cursor-pointer flex flex-col items-center text-center justify-center gap-3 hover-card h-32 ${formData.financialGoals.includes(item.id) ? 'bg-slate-800 text-white border-slate-800' : 'bg-white border-slate-100 text-slate-600'}`}>
+                                            <div className={`${formData.financialGoals.includes(item.id) ? 'text-amber-400' : 'text-slate-400'}`}>
+                                                <Icon name={item.icon} className="w-6 h-6" />
+                                            </div>
+                                            <span className="font-bold text-sm">{item.label}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+
+                    case 4: // 資產配置
+                        return (
+                            <div key="step4" className="fade-in-up space-y-6">
+                                <StepHeader icon="pie-chart" title="資產配置概況" desc="了解您的理財工具與現金流，才能優化配置。" />
+                                
+                                <div>
+                                    <label className="field-label">您目前持有或熟悉的工具 (可複選)<span className="required-mark">*</span></label>
+                                    <div className="flex flex-wrap gap-2.5">
+                                        {[
+                                            '股票/ETF', '基金/債券', '保險/儲蓄', 
+                                            '房地產', '虛擬貨幣', '定存/現金', 
+                                            '理財新手/想學習'
+                                        ].map((tool) => (
+                                            <button key={tool} onClick={() => handleMultiSelect('investmentExperience', tool)}
+                                                className={`px-4 py-3 rounded-xl text-sm font-medium border transition-all active:scale-95 ${formData.investmentExperience.includes(tool) ? 'bg-slate-800 text-amber-400 border-slate-800 shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'}`}>
+                                                {tool}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="pt-2">
+                                    <label className="field-label">每月的「財務結餘」大約是多少？<span className="required-mark">*</span></label>
+                                    <select className="input-base cursor-pointer"
+                                        value={formData.monthlySavings} onChange={(e) => handleChange('monthlySavings', e.target.value)}>
+                                        <option value="">請選擇區間 (收入扣除開銷)</option>
+                                        <option value="<1w">1萬以下 (小資起步)</option>
+                                        <option value="1-3w">1萬 - 3萬 (穩定累積)</option>
+                                        <option value="3-5w">3萬 - 5萬 (加速增長)</option>
+                                        <option value="5-10w">5萬 - 10萬 (積極配置)</option>
+                                        <option value="10w+">10萬以上 (資產傳承)</option>
+                                        <option value="negative">目前無結餘，需協助檢視收支</option>
+                                    </select>
+                                </div>
+                            </div>
+                        );
+
+                    case 5: // 痛點
+                        return (
+                            <div key="step5" className="fade-in-up space-y-6">
+                                <StepHeader icon="trending-up" title="風險與痛點" desc="除了市場波動，您目前最擔心的財務風險？" />
+                                <div className="space-y-3">
+                                    {[
+                                        '現金購買力下降（通膨風險）',
+                                        '收入來源單一，缺乏被動收入',
+                                        '資產傳承與稅務問題',
+                                        '突發健康狀況導致資產縮水',
+                                        '投資過於分散，缺乏整體策略'
+                                    ].map((concern) => (
+                                        <div key={concern} onClick={() => handleMultiSelect('concerns', concern)}
+                                            className={`p-4 rounded-xl border cursor-pointer flex items-center gap-4 hover-card transition-colors ${formData.concerns.includes(concern) ? 'bg-amber-50 border-amber-400' : 'bg-white border-slate-200'}`}>
+                                            <div className={`w-6 h-6 rounded-full border flex items-center justify-center shrink-0 transition-colors ${formData.concerns.includes(concern) ? 'bg-amber-500 border-amber-500' : 'border-slate-300'}`}>
+                                                {formData.concerns.includes(concern) && <div className="pop-in"><Icon name="check" className="text-white w-4 h-4" /></div>}
+                                            </div>
+                                            <span className={`text-sm font-medium ${formData.concerns.includes(concern) ? 'text-slate-900' : 'text-slate-600'}`}>{concern}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+
+                    case 6: // 聯絡資訊
+                        return (
+                            <div key="step6" className="fade-in-up space-y-6">
+                                <StepHeader icon="briefcase" title="預約初步分析" desc="感謝您的填寫，最後一步讓我們保持聯繫。" />
+                                
+                                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
+                                    <h4 className="font-bold text-slate-800 text-sm">接下來的步驟：</h4>
+                                    <ul className="text-sm text-slate-600 space-y-2">
+                                        <li className="flex gap-2 items-center"><span className="w-5 h-5 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center text-xs font-bold">1</span><span>收到資料後，將進行初步的財務架構檢視。</span></li>
+                                        <li className="flex gap-2 items-center"><span className="w-5 h-5 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center text-xs font-bold">2</span><span>24小時內，透過訊息與您確認一對一的線上/線下解說時間。</span></li>
+                                    </ul>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="field-label">如何稱呼您<span className="required-mark">*</span></label>
+                                        <input type="text" className="input-base" placeholder="例如：陳先生 / Alice" 
+                                            value={formData.name} onChange={(e) => handleChange('name', e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label className="field-label">聯絡方式 (Line ID / 手機)<span className="required-mark">*</span></label>
+                                        <input type="text" className="input-base" placeholder="0912-345-678" 
+                                            value={formData.contactInfo} onChange={(e) => handleChange('contactInfo', e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label className="field-label">方便聯絡的時段<span className="required-mark">*</span></label>
+                                        <select className="input-base cursor-pointer"
+                                            value={formData.contactTime} onChange={(e) => handleChange('contactTime', e.target.value)}>
+                                            <option value="">請選擇時段</option>
+                                            <option value="平日白天 (09:00 - 18:00)">平日白天 (09:00 - 18:00)</option>
+                                            <option value="平日晚上 (18:00 - 21:00)">平日晚上 (18:00 - 21:00)</option>
+                                            <option value="假日全天">假日全天</option>
+                                            <option value="隨時皆可">隨時皆可</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="field-label">備註 / 想提前讓我知道的事 (選填)</label>
+                                        <textarea className="input-base resize-none" rows="3" placeholder="例如：目前有繼承問題、特定時間不方便聯繫..."
+                                            value={formData.note} onChange={(e) => handleChange('note', e.target.value)}></textarea>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                    <input type="checkbox" id="privacy-agreement" className="custom-checkbox mt-0.5 cursor-pointer"
+                                        checked={formData.isAgreed} onChange={(e) => handleChange('isAgreed', e.target.checked)} />
+                                    <label htmlFor="privacy-agreement" className="text-xs text-slate-600 cursor-pointer leading-relaxed select-none">
+                                        <span className="font-bold text-slate-800 block mb-1">個人資料使用說明：</span>
+                                        我同意提供上述資料供財務架構分析與諮詢使用，並了解資料將嚴格保密，僅作為聯繫與規劃用途，絕不移作他用。<span className="text-red-500">*</span>
+                                    </label>
+                                </div>
+
+                                {errorMsg && <div className="text-red-500 text-sm text-center bg-red-50 p-3 rounded-lg border border-red-100">{errorMsg}</div>}
+                                <button onClick={handleSubmit} disabled={!validateCurrentStep() || isSubmitting}
+                                    className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 duration-200 ${(!validateCurrentStep() || isSubmitting) ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-slate-900 text-white hover:bg-slate-800 hover:shadow-xl hover:-translate-y-1'}`}>
+                                    {isSubmitting ? <span>資料傳送中...</span> : <>提交並索取分析 <Icon name="chevron-right" className="w-5 h-5" /></>}
+                                </button>
+                            </div>
+                        );
+                    
+                    default:
+                        return null;
+                }
+            };
+
+            if (isSubmitted) {
+                return (
+                    <div className="max-w-md mx-auto bg-white min-h-screen md:min-h-0 md:my-10 md:rounded-2xl shadow-2xl overflow-hidden flex flex-col items-center justify-center p-8 text-center font-sans fade-in-up">
+                        <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mb-6 shadow-lg pop-in">
+                            <Icon name="check-circle" className="text-green-500 w-12 h-12" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-800 mb-2">資料已送出！</h2>
+                        <p className="text-slate-600 mb-8 leading-relaxed text-sm">
+                            謝謝您，{formData.name}。<br/>
+                            我已收到您的需求，將盡快進行初步分析，<br/>
+                            並透過 {formData.contactInfo} 與您聯繫。
+                        </p>
+                        
+                        {MY_LINE_LINK && (
+                             <a href={MY_LINE_LINK} target="_blank" className="w-full mb-4 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:-translate-y-1">
+                                <Icon name="message-circle" className="w-5 h-5" />
+                                直接加我的 LINE 預約
+                            </a>
+                        )}
+
+                        <button onClick={() => window.location.reload()} className="text-slate-400 text-sm hover:text-slate-600 underline mt-4">
+                            返回首頁
+                        </button>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="max-w-md mx-auto bg-white min-h-screen md:min-h-0 md:my-10 md:rounded-3xl shadow-2xl overflow-hidden flex flex-col font-sans border-t-8 border-slate-900 transition-all duration-500">
+                    {step > 0 && (
+                        <div className="bg-white px-6 pt-6 pb-2 relative">
+                            <div className="flex justify-between items-center mb-4">
+                                <button onClick={handleBack} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors active:scale-90"><Icon name="chevron-left" className="w-6 h-6" /></button>
+                                <div className="text-xs font-bold tracking-widest text-slate-400 uppercase">STEP {step} / {TOTAL_STEPS - 1}</div>
+                                <div className="w-10"></div>
+                            </div>
+                            <div className="h-1.5 bg-slate-100 w-full mt-2 rounded-full overflow-hidden">
+                                <div className="h-full bg-slate-900 transition-all duration-500 ease-out" style={{ width: `${(step / (TOTAL_STEPS - 1)) * 100}%` }}></div>
+                            </div>
+                        </div>
+                    )}
+                    <div className={`flex-1 p-6 md:p-8 ${step === 0 ? 'flex flex-col justify-center bg-white' : ''}`}>
+                        {renderContent()}
+                    </div>
+                    {step > 0 && step < TOTAL_STEPS - 1 && (
+                        <div className="p-6 pt-0 bg-white md:px-8 pb-8">
+                            <button onClick={handleNext} disabled={!validateCurrentStep()}
+                                className={`w-full font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 active:scale-95 duration-200 ${!validateCurrentStep() ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-slate-900 hover:bg-slate-800 text-white hover:shadow-lg'}`}>
+                                下一步
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
